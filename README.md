@@ -77,8 +77,6 @@ Then this will show automatically on GitHub 👇
 
 ## 📂 Project Structure
 
-```
-
 document-qa-rag/
 │
 ├── app.py
