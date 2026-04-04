@@ -11,6 +11,12 @@ import os
 # Streamlit UI
 st.set_page_config(page_title="AI Document Q&A System")
 st.title("📄 AI Document Question Answering (RAG + LLM)")
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+api_key = os.getenv("OPENAI_API_KEY")
 
 # Upload PDF
 uploaded_file = st.file_uploader("Upload your PDF file", type="pdf")
