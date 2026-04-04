@@ -3,30 +3,28 @@ import os
 import tempfile
 from dotenv import load_dotenv
 
-# LangChain imports (latest compatible)
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_openai import ChatOpenAI
-
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
-
-
 # Load environment variables
 load_dotenv()
 
-# Streamlit UI setup
+# LangChain imports (stable versions)
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain.chains import RetrievalQA
+from langchain_openai import ChatOpenAI
+
+
+# Streamlit UI
 st.set_page_config(page_title="AI Document Q&A (RAG)")
 st.title("📄 AI Document Question Answering System (RAG + LLM)")
 
-# Check API key
+
+# Check API Key
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not OPENAI_API_KEY:
-    st.error("⚠️ OpenAI API key not found. Add it in .env or Streamlit Secrets.")
+    st.error("⚠️ OpenAI API key not found. Add it in Streamlit Secrets.")
     st.stop()
 
 
@@ -36,7 +34,7 @@ uploaded_file = st.file_uploader("Upload your PDF file", type="pdf")
 
 if uploaded_file:
 
-    # Save uploaded PDF temporarily
+    # Save PDF temporarily
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
         tmp_file.write(uploaded_file.read())
         pdf_path = tmp_file.name
@@ -47,7 +45,7 @@ if uploaded_file:
     loader = PyPDFLoader(pdf_path)
     documents = loader.load()
 
-    # Split document into chunks
+    # Split text
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=500,
         chunk_overlap=100
@@ -62,51 +60,32 @@ if uploaded_file:
         model_name="sentence-transformers/all-MiniLM-L6-v2"
     )
 
-    # Store embeddings in FAISS vector DB
+    # Store embeddings in FAISS
     vectorstore = FAISS.from_documents(chunks, embeddings)
 
-    # Create retriever
+    # Retriever
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
-    # Load LLM
+    # LLM
     llm = ChatOpenAI(
         temperature=0,
         model="gpt-3.5-turbo"
     )
 
-    # Prompt template
-    prompt = ChatPromptTemplate.from_template(
-        """
-Answer the question using ONLY the provided context.
-
-If the answer is not available in the context,
-reply exactly:
-
-"Answer not available in document."
-
-Context:
-{context}
-
-Question:
-{input}
-"""
+    # QA Chain
+    qa_chain = RetrievalQA.from_chain_type(
+        llm=llm,
+        retriever=retriever
     )
 
-    # Create document chain
-    document_chain = create_stuff_documents_chain(llm, prompt)
-
-    # Create retrieval chain
-    qa_chain = create_retrieval_chain(retriever, document_chain)
-
-    # User question input
+    # Question input
     query = st.text_input("💬 Ask a question about the document")
 
     if query:
 
         with st.spinner("Generating answer..."):
 
-            response = qa_chain.invoke({"input": query})
-            answer = response["answer"]
+            answer = qa_chain.run(query)
 
         st.subheader("📌 Answer:")
         st.write(answer)
