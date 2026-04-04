@@ -1,5 +1,4 @@
 import streamlit as st
-from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
@@ -7,16 +6,11 @@ from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
 import tempfile
 import os
-
+from langchain_community.document_loaders import PyPDFLoader
 # Streamlit UI
 st.set_page_config(page_title="AI Document Q&A System")
 st.title("📄 AI Document Question Answering (RAG + LLM)")
 from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-api_key = os.getenv("OPENAI_API_KEY")
 
 # Upload PDF
 uploaded_file = st.file_uploader("Upload your PDF file", type="pdf")
